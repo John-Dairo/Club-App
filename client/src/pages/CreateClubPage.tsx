@@ -12,12 +12,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { api } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+
+const DEMO_USER_ID = "demo-user-id";
 
 export default function CreateClubPage() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [clubName, setClubName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const categories = [
     "Sports",
@@ -32,10 +38,33 @@ export default function CreateClubPage() {
     "Other",
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({ clubName, description, category });
-    setLocation("/");
+    setIsSubmitting(true);
+    
+    try {
+      await api.clubs.create({
+        name: clubName,
+        description,
+        category: category.toLowerCase(),
+        creatorId: DEMO_USER_ID,
+      });
+      
+      toast({
+        title: "Success!",
+        description: "Your club has been created.",
+      });
+      
+      setLocation("/following");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create club",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -103,9 +132,10 @@ export default function CreateClubPage() {
           <div className="pt-4">
             <Button
               type="submit"
-              className="w-full bg-[#2c2c2c] hover:bg-[#1e1e1e] text-white rounded-lg py-6 text-base font-medium"
+              disabled={isSubmitting}
+              className="w-full bg-[#2c2c2c] hover:bg-[#1e1e1e] text-white rounded-lg py-6 text-base font-medium disabled:opacity-50"
             >
-              Create Club
+              {isSubmitting ? "Creating..." : "Create Club"}
             </Button>
           </div>
         </form>

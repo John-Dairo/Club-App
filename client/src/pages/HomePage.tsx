@@ -5,33 +5,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
 
-  const trendingEvents = [
-    {
-      id: "1",
-      title: "UTD VOLLEYBALL GAME",
-      description: "Oct 13, 2025 6v6 Coed Volleyball game",
-      club: "UTD Sports Club",
-      attendees: 24,
-    },
-    {
-      id: "2",
-      title: "Tech Startup Presentation",
-      description: "Oct 12, 2025, Learn about how to start a startup",
-      club: "Entrepreneur Club",
-      attendees: 45,
-    },
-    {
-      id: "3",
-      title: "Coding Workshop",
-      description: "Oct 15, 2025, Learn React and TypeScript",
-      club: "Computer Science Club",
-      attendees: 67,
-    },
-  ];
+  const { data: events = [] } = useQuery({
+    queryKey: ["events"],
+    queryFn: () => api.events.getAll(),
+  });
+
+  const { data: clubs = [] } = useQuery({
+    queryKey: ["clubs"],
+    queryFn: () => api.clubs.getAll(),
+  });
+
+  const trendingEvents = events.slice(0, 5);
 
   const categories = [
     "Sports",
@@ -80,7 +70,7 @@ export default function HomePage() {
         </div>
 
         <div className="space-y-4">
-          {trendingEvents.map((event) => (
+          {trendingEvents.length > 0 ? trendingEvents.map((event: any) => (
             <Card key={event.id} className="border border-gray-200 shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
@@ -95,9 +85,9 @@ export default function HomePage() {
                       {event.description}
                     </p>
                     <div className="flex items-center gap-3 text-xs text-gray-500">
-                      <span>{event.club}</span>
+                      <span>{new Date(event.eventDate).toLocaleDateString()}</span>
                       <span>•</span>
-                      <span>{event.attendees} attending</span>
+                      <span>{event.attendeeCount} attending</span>
                     </div>
                   </div>
                 </div>
@@ -114,7 +104,11 @@ export default function HomePage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          )) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>No events available yet. Create a club to get started!</p>
+            </div>
+          )}
         </div>
 
         <div className="mt-6">
