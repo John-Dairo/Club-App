@@ -30,15 +30,16 @@ export default function HomePage() {
       setSearchResults(data);
       if (data.explanation) {
         toast({
-          title: "AI Search Results",
+          title: data.isAiResult ? "AI Search Results" : "Keyword Search Results",
           description: data.explanation,
+          variant: data.isAiResult ? "default" : "default",
         });
       }
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Search Error",
-        description: "Failed to perform AI search. Please try again.",
+        description: error.message || "Failed to perform search. Please try again.",
         variant: "destructive",
       });
     },
@@ -94,18 +95,18 @@ export default function HomePage() {
             </Button>
           </div>
           {searchResults && (
-            <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between">
+            <div className={`mt-3 ${searchResults.isAiResult ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'} border rounded-lg p-3 flex items-center justify-between`}>
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-blue-600" />
-                <span className="text-sm text-blue-900">
-                  Found {searchResults.clubs?.length || 0} clubs and {searchResults.events?.length || 0} events
+                <Sparkles className={`w-4 h-4 ${searchResults.isAiResult ? 'text-blue-600' : 'text-gray-600'}`} />
+                <span className={`text-sm ${searchResults.isAiResult ? 'text-blue-900' : 'text-gray-900'}`}>
+                  {searchResults.isAiResult ? 'AI found' : 'Found'} {searchResults.clubs?.length || 0} clubs and {searchResults.events?.length || 0} events
                 </span>
               </div>
               <Button
                 onClick={handleClearSearch}
                 variant="ghost"
                 size="sm"
-                className="text-blue-700 hover:text-blue-900 hover:bg-blue-100 h-auto py-1"
+                className={`${searchResults.isAiResult ? 'text-blue-700 hover:text-blue-900 hover:bg-blue-100' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'} h-auto py-1`}
               >
                 Clear
               </Button>
