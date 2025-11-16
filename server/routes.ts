@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { registerUser, authenticateUser } from "./auth";
+import { searchClubsWithAI } from "./ai";
 import { insertClubSchema, insertEventSchema, insertChatMessageSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -206,6 +207,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to unfollow club" });
+    }
+  });
+
+  app.post("/api/search", async (req, res) => {
+    try {
+      const { query } = req.body;
+      if (!query) {
+        return res.status(400).json({ error: "Search query required" });
+      }
+
+      const [clubs, events] = await Promise.all([
+        storage.getAllClubs(),
+        storage.getAllEvents(),
+      ]);
+
+      const results = await searchClubsWithAI(query, clubs, events);
+      res.json(results);
+    } catch (error: any) {
+      console.error("Search error:", error);
+      res.status(500).json({ error: "Failed to perform search" });
     }
   });
 

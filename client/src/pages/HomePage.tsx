@@ -1,15 +1,18 @@
 import { useState } from "react";
-import { Search, TrendingUp, Plus } from "lucide-react";
+import { Search, TrendingUp, Plus, Sparkles } from "lucide-react";
 import MobileNav from "@/components/MobileNav";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const { toast } = useToast();
 
   const { data: events = [] } = useQuery({
     queryKey: ["events"],
@@ -21,7 +24,41 @@ export default function HomePage() {
     queryFn: () => api.clubs.getAll(),
   });
 
-  const trendingEvents = events.slice(0, 5);
+  const searchMutation = useMutation({
+    mutationFn: (query: string) => api.search.aiSearch(query),
+    onSuccess: (data) => {
+      setSearchResults(data);
+      if (data.explanation) {
+        toast({
+          title: "AI Search Results",
+          description: data.explanation,
+        });
+      }
+    },
+    onError: () => {
+      toast({
+        title: "Search Error",
+        description: "Failed to perform AI search. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      searchMutation.mutate(searchQuery);
+    } else {
+      setSearchResults(null);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setSearchResults(null);
+  };
+
+  const displayEvents = searchResults ? searchResults.events : events.slice(0, 5);
+  const trendingEvents = displayEvents;
 
   const categories = [
     "Sports",
@@ -41,12 +78,39 @@ export default function HomePage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <Input
               type="text"
-              placeholder="Search clubs or events"
+              placeholder="Search with AI - try 'sports clubs' or 'tech events'..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-3 rounded-full border border-gray-300 bg-white focus:border-gray-400 focus:ring-0"
+              onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+              className="pl-10 pr-24 py-3 rounded-full border border-gray-300 bg-white focus:border-gray-400 focus:ring-0"
             />
+            <Button
+              onClick={handleSearch}
+              disabled={searchMutation.isPending || !searchQuery.trim()}
+              className="absolute right-1 top-1/2 -translate-y-1/2 bg-[#2c2c2c] hover:bg-[#1e1e1e] text-white h-9 px-3 rounded-full disabled:opacity-50"
+            >
+              <Sparkles className="w-4 h-4 mr-1" />
+              {searchMutation.isPending ? "..." : "AI"}
+            </Button>
           </div>
+          {searchResults && (
+            <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-blue-600" />
+                <span className="text-sm text-blue-900">
+                  Found {searchResults.clubs?.length || 0} clubs and {searchResults.events?.length || 0} events
+                </span>
+              </div>
+              <Button
+                onClick={handleClearSearch}
+                variant="ghost"
+                size="sm"
+                className="text-blue-700 hover:text-blue-900 hover:bg-blue-100 h-auto py-1"
+              >
+                Clear
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
