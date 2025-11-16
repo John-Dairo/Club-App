@@ -11,6 +11,7 @@ export async function searchClubsWithAI(
   clubs: any[];
   events: any[];
   explanation: string;
+  isAiResult: boolean;
 }> {
   const systemPrompt = `You are a helpful AI assistant that helps users discover clubs and events based on their interests. 
 Analyze the user's search query and match it with the most relevant clubs and events from the provided data.
@@ -61,7 +62,17 @@ Find the most relevant clubs and events for this query.`;
       response_format: { type: "json_object" },
     });
 
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error("Empty response from AI");
+    }
+
+    const result = JSON.parse(content);
+
+    if (!result.clubIds || !result.eventIds || !result.explanation) {
+      console.warn("AI response missing expected fields:", result);
+      throw new Error("Invalid AI response format");
+    }
 
     const matchedClubs = clubs.filter((c) =>
       result.clubIds?.includes(c.id)
@@ -73,10 +84,11 @@ Find the most relevant clubs and events for this query.`;
     return {
       clubs: matchedClubs,
       events: matchedEvents,
-      explanation: result.explanation || "Here are your search results.",
+      explanation: result.explanation,
+      isAiResult: true,
     };
   } catch (error: any) {
-    console.error("AI search error:", error);
+    console.error("AI search error:", error.message || error);
     
     const lowerQuery = query.toLowerCase();
     const fallbackClubs = clubs.filter(
@@ -94,7 +106,8 @@ Find the most relevant clubs and events for this query.`;
     return {
       clubs: fallbackClubs,
       events: fallbackEvents,
-      explanation: "Search results based on keyword matching.",
+      explanation: "AI search unavailable. Showing keyword-based results.",
+      isAiResult: false,
     };
   }
 }
