@@ -36,7 +36,25 @@ export async function seedDatabase() {
         location: "Main Gym",
       });
       
-      console.log("✓ Created sample club and event");
+      await storage.createEvent({
+        title: "Basketball Tournament",
+        description: "Join us for an exciting 3v3 basketball tournament. All skill levels welcome!",
+        clubId: club.id,
+        organizerId: user.id,
+        eventDate: new Date("2025-11-20T14:00:00"),
+        location: "Outdoor Courts",
+      });
+      
+      await storage.createEvent({
+        title: "Soccer Practice Session",
+        description: "Weekly soccer practice for all members. Bring your cleats and water bottle.",
+        clubId: club.id,
+        organizerId: user.id,
+        eventDate: new Date("2025-11-25T17:30:00"),
+        location: "Soccer Field",
+      });
+      
+      console.log("✓ Created sample club and events");
     }
 
     const adminUser = await storage.getUserByUsername("admin");
