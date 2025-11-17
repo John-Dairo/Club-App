@@ -38,6 +38,17 @@ export async function seedDatabase() {
       
       console.log("✓ Created sample club and event");
     }
+
+    const adminUser = await storage.getUserByUsername("admin");
+    if (!adminUser) {
+      const hashedPassword = await hashPassword("admin123");
+      await storage.createUser({
+        username: "admin",
+        password: hashedPassword,
+        isAdmin: true,
+      });
+      console.log("✓ Created admin user (username: admin, password: admin123)");
+    }
   } catch (error) {
     console.error("Seed error:", error);
   }

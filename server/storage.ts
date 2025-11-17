@@ -31,6 +31,7 @@ export interface IStorage {
   getAllEvents(): Promise<Event[]>;
   getEventsByClub(clubId: string): Promise<Event[]>;
   createEvent(event: Omit<typeof schema.insertEventSchema._type, "id">): Promise<Event>;
+  deleteEvent(id: string): Promise<void>;
   
   getClubMembers(clubId: string): Promise<(ClubMember & { user: User })[]>;
   addClubMember(member: typeof schema.insertClubMemberSchema._type): Promise<ClubMember>;
@@ -93,6 +94,10 @@ export class DbStorage implements IStorage {
   async createEvent(event: Omit<typeof schema.insertEventSchema._type, "id">): Promise<Event> {
     const result = await db.insert(schema.events).values(event).returning();
     return result[0];
+  }
+
+  async deleteEvent(id: string): Promise<void> {
+    await db.delete(schema.events).where(eq(schema.events.id, id));
   }
 
   async getClubMembers(clubId: string): Promise<(ClubMember & { user: User })[]> {
