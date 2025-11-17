@@ -81,6 +81,18 @@ export const api = {
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
+    delete: async (eventId: string) => {
+      const sessionToken = localStorage.getItem("sessionToken");
+      const res = await fetch(`${API_BASE}/events/${eventId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${sessionToken}`,
+        },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
   },
   chat: {
     getMessages: async (clubId: string, limit = 50) => {

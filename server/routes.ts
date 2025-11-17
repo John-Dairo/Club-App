@@ -4,6 +4,13 @@ import { storage } from "./storage";
 import { registerUser, authenticateUser } from "./auth";
 import { searchClubsWithAI } from "./ai";
 import { insertClubSchema, insertEventSchema, insertChatMessageSchema } from "@shared/schema";
+import { randomBytes } from "crypto";
+
+const activeSessions = new Map<string, { userId: string; isAdmin: boolean }>();
+
+function generateSessionToken(): string {
+  return randomBytes(32).toString("hex");
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/register", async (req, res) => {
@@ -27,8 +34,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Username and password required" });
       }
       const user = await authenticateUser(username, password);
+      const sessionToken = generateSessionToken();
+      activeSessions.set(sessionToken, { userId: user.id, isAdmin: user.isAdmin || false });
+      
       const { password: _, ...userWithoutPassword } = user;
-      res.status(200).json(userWithoutPassword);
+      res.status(200).json({ ...userWithoutPassword, sessionToken });
     } catch (error: any) {
       res.status(401).json({ error: error.message });
     }
@@ -94,6 +104,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(event);
     } catch (error) {
       res.status(500).json({ error: "Failed to create event" });
+    }
+  });
+
+  app.delete("/api/events/:id", async (req, res) => {
+    try {
+      const sessionToken = req.headers.authorization?.replace("Bearer ", "");
+      if (!sessionToken) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const session = activeSessions.get(sessionToken);
+      if (!session || !session.isAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      await storage.deleteEvent(req.params.id);
+      res.status(200).json({ message: "Event deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete event" });
     }
   });
 

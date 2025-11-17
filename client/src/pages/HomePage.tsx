@@ -1,18 +1,39 @@
-import { useState } from "react";
-import { Search, TrendingUp, Plus, Sparkles } from "lucide-react";
-import MobileNav from "@/components/MobileNav";
+import { useState, useEffect } from "react";
+import { Search, TrendingUp, Plus, Sparkles, Trash2 } from "lucide-react";
+import Layout from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const storedIsAdmin = localStorage.getItem("isAdmin") === "true";
+    const storedUserId = localStorage.getItem("userId");
+    setIsAdmin(storedIsAdmin);
+    setUserId(storedUserId);
+  }, []);
 
   const { data: events = [] } = useQuery({
     queryKey: ["events"],
@@ -45,6 +66,28 @@ export default function HomePage() {
     },
   });
 
+  const deleteEventMutation = useMutation({
+    mutationFn: (eventId: string) => {
+      return api.events.delete(eventId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      toast({
+        title: "Event deleted",
+        description: "The event has been successfully deleted.",
+      });
+      setDeleteEventId(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete event",
+        variant: "destructive",
+      });
+      setDeleteEventId(null);
+    },
+  });
+
   const handleSearch = () => {
     if (searchQuery.trim()) {
       searchMutation.mutate(searchQuery);
@@ -71,8 +114,9 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white pb-20">
-      <div className="sticky top-0 bg-white border-b border-gray-200 z-40">
+    <Layout>
+      <div className="min-h-screen bg-white pb-20">
+        <div className="sticky top-12 bg-white border-b border-gray-200 z-40">
         <div className="px-4 pt-12 pb-4">
           <h1 className="text-3xl font-semibold text-black mb-4">Discover</h1>
           <div className="relative">
@@ -166,6 +210,17 @@ export default function HomePage() {
                   >
                     Share
                   </Button>
+                  {isAdmin && (
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => setDeleteEventId(event.id)}
+                      className="rounded-lg"
+                      data-testid={`button-delete-event-${event.id}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -185,8 +240,27 @@ export default function HomePage() {
           </Link>
         </div>
       </div>
+      </div>
 
-      <MobileNav />
-    </div>
+      <AlertDialog open={deleteEventId !== null} onOpenChange={(open) => !open && setDeleteEventId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Event</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this event? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteEventId && deleteEventMutation.mutate(deleteEventId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Layout>
   );
 }

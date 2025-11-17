@@ -10,6 +10,7 @@ export const users = pgTable("users", {
   displayName: text("display_name"),
   bio: text("bio"),
   avatar: text("avatar"),
+  isAdmin: boolean("is_admin").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -74,7 +75,8 @@ export const follows = pgTable("follows", {
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
-});
+  isAdmin: true,
+}).partial({ isAdmin: true });
 
 export const insertClubSchema = createInsertSchema(clubs).omit({ id: true, memberCount: true, createdAt: true });
 export const insertEventSchema = createInsertSchema(events).omit({ id: true, attendeeCount: true, isReported: true, createdAt: true });

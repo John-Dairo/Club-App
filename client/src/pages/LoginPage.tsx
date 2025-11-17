@@ -21,21 +21,26 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      let userData;
       if (isLogin) {
-        await api.auth.login(username, password);
+        userData = await api.auth.login(username, password);
         toast({
           title: "Welcome back!",
           description: "You've successfully logged in.",
         });
       } else {
-        await api.auth.register(username, password);
+        userData = await api.auth.register(username, password);
         toast({
           title: "Account created!",
           description: "You've successfully registered.",
         });
       }
       
-      localStorage.setItem("username", username);
+      localStorage.setItem("username", userData.username);
+      localStorage.setItem("isAdmin", userData.isAdmin ? "true" : "false");
+      localStorage.setItem("userId", userData.id);
+      localStorage.setItem("sessionToken", userData.sessionToken);
+      window.dispatchEvent(new Event("auth-change"));
       setLocation("/");
     } catch (error: any) {
       toast({
